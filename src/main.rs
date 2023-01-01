@@ -1,3 +1,5 @@
+use std::fs::File;
+use std::io::{stdin, BufRead, BufReader};
 use clap::Parser;
 
 #[derive(Parser)]
@@ -11,13 +13,26 @@ struct Opts {
     #[clap(short, long)]
     verbose: bool,
 
-    #[clap(name = "FILE", default_value = "default.txt")]
-    formula_file: String,
+    #[clap(name = "FILE")]
+    formula_file: Option<String>,
+}
+
+fn run<R: BufRead>(reader: R, verbose: bool) {
+    for line in reader.lines() {
+        let line = line.unwrap();
+        println!("{}", line);
+    }
 }
 
 fn main() {
     let opts = Opts::parse();
 
-    println!("File specified: {}", opts.formula_file);
-    println!("Is verbosity specified?: {}", opts.verbose)
+    if let Some(path) = opts.formula_file {
+        let f = File::open(path).unwrap();
+        let reader = BufReader::new(f);
+        run(reader, opts.verbose)
+    } else {
+        let reader = stdin().lock();
+        run(reader, opts.verbose)
+    }
 }
