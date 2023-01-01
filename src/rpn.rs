@@ -1,3 +1,4 @@
+use anyhow::{bail, ensure, Context, Result};
 
 pub struct RpnCalculator(bool);
 
@@ -6,20 +7,23 @@ impl RpnCalculator {
         Self(verbose)
     }
 
-    pub fn eval(&self, formula: &str) -> i32 {
+    pub fn eval(&self, formula: &str) -> Result<i32> {
         let mut tokens = formula.split_whitespace().rev().collect::<Vec<_>>();
         self.eval_inner(&mut tokens)
     }
 
-    fn eval_inner(&self, tokens: &mut Vec<&str>) -> i32 {
+    fn eval_inner(&self, tokens: &mut Vec<&str>) -> Result<i32> {
         let mut stack = Vec::new();
+        let mut pos = 0;
 
         while let Some(token) = tokens.pop() {
+            pos += 1;
+
             if let Ok(x) = token.parse::<i32>() {
                 stack.push(x);
             } else {
-                let y = stack.pop().expect("Invalid syntax");
-                let x = stack.pop().expect("Invalid syntax");
+                let y = stack.pop().context(format!("Invalid syntax at {}", pos))?;
+                let x = stack.pop().context(format!("Invalid syntax at {}", pos))?;
 
                 let res = match token {
                     "+" => x + y,
@@ -27,7 +31,7 @@ impl RpnCalculator {
                     "*" => x * y,
                     "/" => x / y,
                     "%" => x % y,
-                    _ => panic!("Invalid syntax"),
+                    _ => bail!("Invalid token at {}", pos),
                 };
 
                 stack.push(res);
@@ -38,11 +42,9 @@ impl RpnCalculator {
             }
         }
 
-        if stack.len() == 1 {
-            stack[0]
-        } else {
-            panic!("invalid syntax")
-        }
+        ensure!(stack.len() == 1, "Invalid syntax");
+
+        Ok(stack[0])
     }
 }
 
@@ -62,7 +64,7 @@ speculate! {
         fn parse_just_number(raw: &str, expected: i32) {
             let calc = RpnCalculator::new(false);
 
-            assert_eq!(calc.eval(raw), expected);
+            assert_eq!(calc.eval(raw).unwrap(), expected);
         }
     }
 
@@ -77,38 +79,35 @@ speculate! {
         fn calculate(raw: &str, expected: i32) {
             let calc = RpnCalculator::new(false);
 
-            assert_eq!(calc.eval(raw), expected);
+            assert_eq!(calc.eval(raw).unwrap(), expected);
         }
     }
 
     describe "シンタックスエラーがあるときパニックになる" {
         describe "空文字列が入力されたとき" {
             #[rstest]
-            #[should_panic]
             fn input_is_empty() {
                 let calc = RpnCalculator::new(false);
 
-                calc.eval("");
+                assert!(calc.eval("").is_err())
             }
         }
 
         describe "不適切な記号が紛れ込んでいるとき" {
             #[rstest]
-            #[should_panic]
             fn invalid_unknown_symbol() {
                 let calc = RpnCalculator::new(false);
 
-                calc.eval("1 1 &");
+                assert!(calc.eval("1 1 &").is_err())
             }
         }
 
         describe "順番が不適切なとき" {
             #[rstest]
-            #[should_panic]
             fn invalid_unknown_symbol() {
                 let calc = RpnCalculator::new(false);
 
-                calc.eval("1 + 1");
+                assert!(calc.eval("1 + 1").is_err())
             }
         }
     }

@@ -24,8 +24,10 @@ fn run<R: BufRead>(reader: R, verbose: bool) {
 
     for line in reader.lines() {
         let line = line.unwrap();
-        let answer = calc.eval(&line);
-        println!("{}", answer);
+        match calc.eval(&line) {
+            Ok(answer) => println!("{}", answer),
+            Err(e) => eprintln!("{:#?}", e),
+        }
     }
 }
 
