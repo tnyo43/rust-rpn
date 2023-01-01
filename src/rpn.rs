@@ -47,33 +47,69 @@ impl RpnCalculator {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
+extern crate speculate;
+extern crate rstest;
 
-    #[test]
-    fn parse_just_number() {
-        let calc = RpnCalculator::new(false);
+use speculate::speculate;
+use rstest::*;
 
-        assert_eq!(calc.eval("5"), 5);
-        assert_eq!(calc.eval("10"), 10);
+speculate! {
+    describe "数字はそのまま parse される" {
+        #[rstest(raw, expected,
+            case("5", 5),
+            case("10", 10),
+        )]
+        fn parse_just_number(raw: &str, expected: i32) {
+            let calc = RpnCalculator::new(false);
+
+            assert_eq!(calc.eval(raw), expected);
+        }
     }
 
-    #[test]
-    fn calculate() {
-        let calc = RpnCalculator::new(false);
+    describe "四則演算と余りの県債ができる" {
+        #[rstest(raw, expected,
+            case("5 3 +", 8),
+            case("10 14 -", -4),
+            case("9 5 *", 45),
+            case("40 3 /", 13),
+            case("40 3 %", 1),
+        )]
+        fn calculate(raw: &str, expected: i32) {
+            let calc = RpnCalculator::new(false);
 
-        assert_eq!(calc.eval("5 3 +"), 8);
-        assert_eq!(calc.eval("10 14 -"), -4);
-        assert_eq!(calc.eval("9 5 *"), 45);
-        assert_eq!(calc.eval("40 3 /"), 13);
-        assert_eq!(calc.eval("40 3 %"), 1);
+            assert_eq!(calc.eval(raw), expected);
+        }
     }
 
-    #[test]
-    #[should_panic]
-    fn invalid_syntax_make_panic() {
-        let calc = RpnCalculator::new(false);
+    describe "シンタックスエラーがあるときパニックになる" {
+        describe "空文字列が入力されたとき" {
+            #[rstest]
+            #[should_panic]
+            fn input_is_empty() {
+                let calc = RpnCalculator::new(false);
 
-        calc.eval("1 1 &");
+                calc.eval("");
+            }
+        }
+
+        describe "不適切な記号が紛れ込んでいるとき" {
+            #[rstest]
+            #[should_panic]
+            fn invalid_unknown_symbol() {
+                let calc = RpnCalculator::new(false);
+
+                calc.eval("1 1 &");
+            }
+        }
+
+        describe "順番が不適切なとき" {
+            #[rstest]
+            #[should_panic]
+            fn invalid_unknown_symbol() {
+                let calc = RpnCalculator::new(false);
+
+                calc.eval("1 + 1");
+            }
+        }
     }
 }
