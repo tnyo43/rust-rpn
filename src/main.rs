@@ -3,7 +3,7 @@ use std::io::{stdin, BufRead, BufReader};
 use std::path::PathBuf;
 use clap::Parser;
 
-use samplecli::rpn::RpnCalculator;
+use rpncalc::rpn::RpnCalculator;
 
 #[derive(Parser)]
 #[command(
