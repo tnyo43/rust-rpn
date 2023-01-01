@@ -1,5 +1,6 @@
 use std::fs::File;
 use std::io::{stdin, BufRead, BufReader};
+use std::path::PathBuf;
 use clap::Parser;
 
 use samplecli::rpn::RpnCalculator;
@@ -16,7 +17,7 @@ struct Opts {
     verbose: bool,
 
     #[clap(name = "FILE")]
-    formula_file: Option<String>,
+    formula_file: Option<PathBuf>,
 }
 
 fn run<R: BufRead>(reader: R, verbose: bool) {
